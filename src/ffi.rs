@@ -13,6 +13,7 @@ use crate::capture::{
     processing::{FramePreprocessor, PreprocessConfig, PreprocessError},
 };
 use crate::capture::{Frame, StereoCamera};
+use crate::config::{Config, ConfigError};
 use crate::output::{BabbleEmitter, EtvrEmitter, OscTransport, TransportError};
 use crate::pipeline::{EyePipeline, FacePipeline, FilterParameters, PipelineError};
 use crate::track::eye::EyeTracker;
@@ -57,6 +58,10 @@ pub enum SnoutError {
     TransportBind,
     /// Failed to resolve the transport destination address.
     TransportResolve,
+    /// The config file could not be found.
+    ConfigFileNotFound,
+    /// The config file could not be parsed.
+    ConfigInvalidConfig,
 }
 
 impl From<TransportError> for SnoutError {
@@ -101,6 +106,15 @@ impl From<PipelineError> for SnoutError {
         match error {
             PipelineError::Load(_) => SnoutError::PipelineLoad,
             PipelineError::Inference(_) => SnoutError::PipelineInference,
+        }
+    }
+}
+
+impl From<ConfigError> for SnoutError {
+    fn from(error: ConfigError) -> Self {
+        match error {
+            ConfigError::FileNotFound => SnoutError::ConfigFileNotFound,
+            ConfigError::InvalidConfig(_) => SnoutError::ConfigInvalidConfig,
         }
     }
 }
@@ -1198,6 +1212,31 @@ pub extern "C" fn snout_face_tracker_new() -> *mut FaceTracker {
     Box::into_raw(Box::new(tracker))
 }
 
+/// Creates a new [`FaceTracker`] with the given configuration.
+///
+/// You have to make sure `snout_query_cameras` was called before calling this function, otherwise the source will be null.
+///
+/// Returns null if there was an error, check [`snout_last_error`] for details.
+#[unsafe(no_mangle)]
+pub extern "C" fn snout_face_tracker_with_config(config: *const Config) -> *mut FaceTracker {
+    clear_last_error();
+
+    if config.is_null() {
+        return std::ptr::null_mut();
+    }
+
+    let cameras = CAMERA_INFO.lock().expect("Failed to acquire lock");
+
+    let config = unsafe { &*config };
+    match FaceTracker::with_config(&cameras, config) {
+        Ok(tracker) => Box::into_raw(Box::new(tracker)),
+        Err(err) => {
+            set_last_error(err);
+            std::ptr::null_mut()
+        }
+    }
+}
+
 /// Drops a [`FaceTracker`] instance created by [`snout_face_tracker_new`].
 #[unsafe(no_mangle)]
 pub extern "C" fn snout_face_tracker_free(tracker: *mut FaceTracker) {
@@ -1503,6 +1542,31 @@ pub extern "C" fn snout_eye_tracker_new() -> *mut EyeTracker {
     Box::into_raw(Box::new(tracker))
 }
 
+/// Creates a new [`EyeTracker`] with the given configuration.
+///
+/// You have to make sure `snout_query_cameras` was called before calling this function, otherwise the source will be null.
+///
+/// Returns null if there was an error, check [`snout_last_error`] for details.
+#[unsafe(no_mangle)]
+pub extern "C" fn snout_eye_tracker_with_config(config: *const Config) -> *mut EyeTracker {
+    clear_last_error();
+
+    if config.is_null() {
+        return std::ptr::null_mut();
+    }
+
+    let cameras = CAMERA_INFO.lock().expect("Failed to acquire lock");
+
+    let config = unsafe { &*config };
+    match EyeTracker::with_config(&cameras, config) {
+        Ok(tracker) => Box::into_raw(Box::new(tracker)),
+        Err(err) => {
+            set_last_error(err);
+            std::ptr::null_mut()
+        }
+    }
+}
+
 /// Drops an [`EyeTracker`] instance created by [`snout_eye_tracker_new`].
 #[unsafe(no_mangle)]
 pub extern "C" fn snout_eye_tracker_free(tracker: *mut EyeTracker) {
@@ -1786,4 +1850,51 @@ pub extern "C" fn snout_initialize_runtime(path: *const std::ffi::c_char) {
     };
 
     initialize_runtime(path);
+}
+
+/// Load a configuration file from the given path.
+///
+/// Will return null if the path is null or if the file cannot be parsed.
+/// Check [`snout_get_last_error`] to get the error code and message.
+///
+/// The returned object must be freed with [`snout_config_free`].
+#[unsafe(no_mangle)]
+pub extern "C" fn snout_config_load(path: *const std::ffi::c_char) -> *mut Config {
+    clear_last_error();
+
+    if path.is_null() {
+        set_null_pointer_error();
+        return std::ptr::null_mut();
+    }
+
+    let path = unsafe { CStr::from_ptr(path) };
+    let path = match path.to_str() {
+        Ok(s) => s,
+        Err(e) => {
+            set_utf8_error(e);
+            return std::ptr::null_mut();
+        }
+    };
+
+    match crate::config::load(path) {
+        Ok(config) => Box::into_raw(Box::new(config)) as *mut Config,
+        Err(e) => {
+            set_last_error(e);
+            std::ptr::null_mut()
+        }
+    }
+}
+
+/// Free the given config created by [`snout_config_load`].
+#[unsafe(no_mangle)]
+pub extern "C" fn snout_config_free(config: *mut Config) {
+    clear_last_error();
+
+    if config.is_null() {
+        return;
+    }
+
+    unsafe {
+        drop(Box::from_raw(config));
+    }
 }

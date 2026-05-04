@@ -68,6 +68,14 @@ typedef enum SnoutError {
    * Failed to resolve the transport destination address.
    */
   SnoutError_TransportResolve,
+  /**
+   * The config file could not be found.
+   */
+  SnoutError_ConfigFileNotFound,
+  /**
+   * The config file could not be parsed.
+   */
+  SnoutError_ConfigInvalidConfig,
 } SnoutError;
 
 enum FaceShape
@@ -147,6 +155,8 @@ typedef struct BabbleEmitter BabbleEmitter;
  * Identifies a camera device and how to open it.
  */
 typedef struct CameraSource CameraSource;
+
+typedef struct Config Config;
 
 typedef struct EtvrEmitter EtvrEmitter;
 
@@ -678,6 +688,15 @@ void snout_eye_calibrator_free(struct EyeCalibrator *calibrator);
 struct FaceTracker *snout_face_tracker_new(void);
 
 /**
+ * Creates a new [`FaceTracker`] with the given configuration.
+ *
+ * You have to make sure `snout_query_cameras` was called before calling this function, otherwise the source will be null.
+ *
+ * Returns null if there was an error, check [`snout_last_error`] for details.
+ */
+struct FaceTracker *snout_face_tracker_with_config(const struct Config *config);
+
+/**
  * Drops a [`FaceTracker`] instance created by [`snout_face_tracker_new`].
  */
 void snout_face_tracker_free(struct FaceTracker *tracker);
@@ -773,6 +792,15 @@ void snout_etvr_emitter_process_eyes(struct EtvrEmitter *emitter,
 struct EyeTracker *snout_eye_tracker_new(void);
 
 /**
+ * Creates a new [`EyeTracker`] with the given configuration.
+ *
+ * You have to make sure `snout_query_cameras` was called before calling this function, otherwise the source will be null.
+ *
+ * Returns null if there was an error, check [`snout_last_error`] for details.
+ */
+struct EyeTracker *snout_eye_tracker_with_config(const struct Config *config);
+
+/**
  * Drops an [`EyeTracker`] instance created by [`snout_eye_tracker_new`].
  */
 void snout_eye_tracker_free(struct EyeTracker *tracker);
@@ -860,6 +888,21 @@ struct SnoutOutputFields snout_output_fields(struct Output *output);
  * If `path` is not null, it will be considered first when searching for `libonnxruntime.so`.
  */
 void snout_initialize_runtime(const char *path);
+
+/**
+ * Load a configuration file from the given path.
+ *
+ * Will return null if the path is null or if the file cannot be parsed.
+ * Check [`snout_get_last_error`] to get the error code and message.
+ *
+ * The returned object must be freed with [`snout_config_free`].
+ */
+struct Config *snout_config_load(const char *path);
+
+/**
+ * Free the given config created by [`snout_config_load`].
+ */
+void snout_config_free(struct Config *config);
 
 #ifdef __cplusplus
 }  // extern "C"
