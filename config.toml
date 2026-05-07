@@ -52,4 +52,4 @@ model = "faceModel.onnx" # If not specified, tracking will be disabled.
 baseline = "eyeModel.safetensors"
 
 #[output.osc]
-#destination = "127.0.0.1:9400"
+#destination = "127.0.0.1:9400" # Set this to 127.0.0.1:8888 if you use VRCFT.Avalonia.
