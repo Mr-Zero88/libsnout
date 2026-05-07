@@ -1,5 +1,4 @@
 /target
-eyeModel.safetensors
 simplifiedFaceModel.bpk
 upgradedFaceModel.onnx
 oldFaceModel.onnx
