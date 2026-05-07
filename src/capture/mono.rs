@@ -1,25 +1,30 @@
-use crate::capture::{CameraError, Frame, discovery::CameraSource, internal::V4lCamera};
+use crate::capture::{
+    CameraError, Frame,
+    discovery::CameraSource,
+    internal::{Camera, V4lCamera, http::HttpCamera},
+};
 
 pub struct MonoCamera {
-    inner: V4lCamera,
-    frame: Frame,
+    inner: Box<dyn Camera>,
+    frame: Option<Frame>,
 }
 
 impl MonoCamera {
-    pub fn open(source: CameraSource) -> Result<Self, CameraError> {
-        let inner = match source {
-            CameraSource::V4l(s) => V4lCamera::open(s)?,
+    pub fn open(source: &CameraSource) -> Result<Self, CameraError> {
+        let inner: Box<dyn Camera> = match source {
+            CameraSource::V4l(s) => Box::new(V4lCamera::open(*s)?),
+            CameraSource::Http(s) => Box::new(HttpCamera::open(s)?),
         };
 
-        Ok(Self {
-            frame: Frame::empty(inner.width as u32, inner.height as u32),
-            inner,
-        })
+        Ok(Self { frame: None, inner })
     }
 
     pub fn get_frame(&mut self) -> Result<&Frame, CameraError> {
-        self.inner.read_frame(&mut self.frame.image)?;
+        let image = self.inner.read_frame()?;
+        self.frame = Some(Frame::new(image));
 
-        Ok(&self.frame)
+        self.frame
+            .as_ref()
+            .ok_or_else(|| CameraError::Internal("No frame available".to_string()))
     }
 }

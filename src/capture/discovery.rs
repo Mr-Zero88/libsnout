@@ -37,10 +37,16 @@ pub struct V4lSource {
     pub(crate) fourcc: [u8; 4],
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct HttpSource {
+    pub url: String,
+}
+
 /// Identifies a camera device and how to open it.
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum CameraSource {
     V4l(V4lSource),
+    Http(HttpSource),
 }
 
 /// Information about a discovered camera.
@@ -60,6 +66,9 @@ impl CameraInfo {
                     "{} ({}x{} @ {}fps)",
                     self.name, format.width, format.height, format.fps
                 )
+            }
+            CameraSource::Http(http) => {
+                format!("{}", http.url)
             }
         }
     }
@@ -260,4 +269,22 @@ pub fn query_cameras() -> Vec<CameraInfo> {
     }
 
     cameras
+}
+
+/// Resolves a camera source from a given name.
+///
+/// If the name starts with "http:", it is treated as a URL and a [`HttpSource`] is returned.
+///
+/// Otherwise, it is treated as a display name and a [`CameraSource`] is returned if found.
+pub fn resolve_source(cameras: &[CameraInfo], name: &str) -> Option<CameraSource> {
+    if name.starts_with("http:") {
+        return Some(CameraSource::Http(HttpSource {
+            url: name.to_string(),
+        }));
+    }
+
+    cameras
+        .iter()
+        .find(|c| c.display_name() == name)
+        .map(|c| c.source.clone())
 }

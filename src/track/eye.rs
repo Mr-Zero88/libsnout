@@ -51,12 +51,12 @@ impl EyeTracker {
         let left_camera = cameras
             .iter()
             .find(|s| s.display_name() == config.eye.left.camera)
-            .map(|c| c.source);
+            .map(|c| c.source.clone());
 
         let right_camera = cameras
             .iter()
             .find(|s| s.display_name() == config.eye.right.camera)
-            .map(|c| c.source);
+            .map(|c| c.source.clone());
 
         tracker.set_source(left_camera, right_camera);
 
@@ -134,7 +134,7 @@ impl EyeTracker {
 
     fn ensure_camera(&mut self) -> Result<bool, TrackerError> {
         if self.camera.is_none() {
-            let (Some(left), Some(right)) = (self.left_source, self.right_source) else {
+            let (Some(left), Some(right)) = (&self.left_source, &self.right_source) else {
                 return Ok(false);
             };
 

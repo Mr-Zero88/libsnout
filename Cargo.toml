@@ -23,6 +23,7 @@ ort = { version = "2.0.0-rc.12", default-features = false, features = ["api-20",
 serde = "1.0.228"
 toml = "1.1.2"
 ndarray = "0.17.2"
+ureq = { version = "3.3.0", default-features = false }
 
 [build-dependencies]
 burn-onnx = { version = "0.21.0-pre.3" }

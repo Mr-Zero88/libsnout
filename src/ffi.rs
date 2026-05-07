@@ -284,7 +284,7 @@ pub extern "C" fn snout_camera_source(index: usize) -> *mut CameraSource {
         return std::ptr::null_mut();
     };
 
-    Box::into_raw(Box::new(info.source))
+    Box::into_raw(Box::new(info.source.clone()))
 }
 
 /// Free the camera source acquired by [`snout_camera_source`].
@@ -329,7 +329,7 @@ pub extern "C" fn snout_mono_camera_open(source: *const CameraSource) -> *mut Mo
         return std::ptr::null_mut();
     }
 
-    let source = unsafe { *source };
+    let source = unsafe { &*source };
 
     match MonoCamera::open(source) {
         Ok(camera) => Box::into_raw(Box::new(camera)),
@@ -443,8 +443,8 @@ pub extern "C" fn snout_stereo_camera_open(
         return std::ptr::null_mut();
     }
 
-    let left = unsafe { *left };
-    let right = unsafe { *right };
+    let left = unsafe { &*left };
+    let right = unsafe { &*right };
 
     match StereoCamera::open(left, right) {
         Ok(camera) => Box::into_raw(Box::new(camera)),
@@ -469,7 +469,7 @@ pub extern "C" fn snout_stereo_camera_open_sbs(source: *const CameraSource) -> *
         return std::ptr::null_mut();
     }
 
-    let source = unsafe { *source };
+    let source = unsafe { &*source };
 
     match StereoCamera::open_sbs(source) {
         Ok(camera) => Box::into_raw(Box::new(camera)),
@@ -1271,7 +1271,8 @@ pub extern "C" fn snout_face_tracker_set_source(
     let source = if source.is_null() {
         None
     } else {
-        Some(unsafe { *source })
+        let source = unsafe { &*source };
+        Some(source.clone())
     };
 
     tracker.set_source(source);
@@ -1603,13 +1604,15 @@ pub extern "C" fn snout_eye_tracker_set_source(
     let left = if left.is_null() {
         None
     } else {
-        Some(unsafe { *left })
+        let left = unsafe { &*left };
+        Some(left.clone())
     };
 
     let right = if right.is_null() {
         None
     } else {
-        Some(unsafe { *right })
+        let right = unsafe { &*right };
+        Some(right.clone())
     };
 
     tracker.set_source(left, right);

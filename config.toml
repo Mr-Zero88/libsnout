@@ -33,6 +33,7 @@ camera = "Bigeye: Bigeye (800x400 @ 90fps)" # If not specified, tracking will be
 #horizontal_flip = false
 
 [face]
+# You can use a URL like "http://127.0.0.1:8080/mjpeg/stream.jpg" here as well.
 camera = "USB 2.0 Camera: USB Camera (640x480 @ 30fps)" # If not specified, tracking will be disabled.
 model = "faceModel.onnx" # If not specified, tracking will be disabled.
 

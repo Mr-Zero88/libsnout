@@ -2,7 +2,7 @@ use crate::{
     calibration::{FaceShape, ManualFaceCalibrator, Weights},
     capture::{
         CameraError, Frame, MonoCamera,
-        discovery::{CameraInfo, CameraSource},
+        discovery::{CameraInfo, CameraSource, resolve_source},
         processing::FramePreprocessor,
     },
     config::Config,
@@ -42,10 +42,7 @@ impl FaceTracker {
 
         tracker.pipeline.set_model(config.face.model.as_ref())?;
 
-        let camera = cameras
-            .iter()
-            .find(|s| s.display_name() == config.face.camera)
-            .map(|c| c.source);
+        let camera = resolve_source(cameras, &config.face.camera);
 
         tracker.set_source(camera);
 
@@ -100,7 +97,7 @@ impl FaceTracker {
 
     fn ensure_camera(&mut self) -> Result<bool, TrackerError> {
         if self.camera.is_none() {
-            let Some(source) = self.source else {
+            let Some(source) = &self.source else {
                 return Ok(false);
             };
 

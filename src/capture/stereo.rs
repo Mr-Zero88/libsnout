@@ -15,12 +15,14 @@ pub struct StereoCamera {
 }
 
 impl StereoCamera {
-    pub fn open(left: CameraSource, right: CameraSource) -> Result<Self, CameraError> {
+    pub fn open(left: &CameraSource, right: &CameraSource) -> Result<Self, CameraError> {
         let left = match left {
-            CameraSource::V4l(s) => V4lCamera::open(s)?,
+            CameraSource::V4l(s) => V4lCamera::open(*s)?,
+            CameraSource::Http(_source) => todo!(),
         };
         let right = match right {
-            CameraSource::V4l(s) => V4lCamera::open(s)?,
+            CameraSource::V4l(s) => V4lCamera::open(*s)?,
+            CameraSource::Http(_source) => todo!(),
         };
 
         let width = left.width as u32;
@@ -33,9 +35,10 @@ impl StereoCamera {
         })
     }
 
-    pub fn open_sbs(source: CameraSource) -> Result<Self, CameraError> {
+    pub fn open_sbs(source: &CameraSource) -> Result<Self, CameraError> {
         let camera = match source {
-            CameraSource::V4l(s) => V4lCamera::open(s)?,
+            CameraSource::V4l(s) => V4lCamera::open(*s)?,
+            CameraSource::Http(_source) => todo!(),
         };
         let sbs_buffer = GrayImage::new(camera.width as _, camera.height as _);
 
