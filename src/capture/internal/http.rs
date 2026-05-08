@@ -1,5 +1,5 @@
 use std::io::Read;
-use std::sync::mpsc::{Receiver, SyncSender, sync_channel};
+use std::sync::mpsc::{Receiver, SyncSender, TrySendError, sync_channel};
 use std::thread;
 
 use image::GrayImage;
@@ -60,9 +60,11 @@ fn run(url: &str, tx: &SyncSender<GrayImage>) {
             continue; // skip malformed frames
         };
 
-        if tx.send(img.into_luma8()).is_err() {
+        if let Err(TrySendError::Disconnected(_)) = tx.try_send(img.into_luma8()) {
             return; // consumer gone
         }
+        // TrySendError::Full: drop this frame, keep draining the socket
+        // so the server's send buffer doesn't back up.
     }
 }
 
