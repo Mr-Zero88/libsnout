@@ -3,42 +3,235 @@
 This is a rust implementation of Project Babble's baballonia face tracking sofware.
 It's designed to be a library; easy to integrate in a variety of frontend projects.
 
-## Building libsnout
 
-Make sure you have `llvm-devel` installed.
-A working face tracking model is supplied. It's the same as in the baballonia repository, but ran through `onnxsim`.
+## Required dependencies
 
-On fedora it's:
-```sh
-dnf install llvm llvm-devel onnxruntime onnxruntime-devel
-```
+Libsnout requires the following build dependencies (in the form of fedora package names):
+
+1. llvm
+2. llvm-devel
+3. onnxruntime
+4. onnxruntime-devel
+
 
 ## Building and running the CLI
 
-Configure the `config.toml` to your liking and run. It will show the different commands.
+Clone the repository,
+```sh
+git clone https://github.com/Darksecond/libsnout.git
+```
+
+and then build the program.
 
 ```sh
-cargo run --release -p snout-cli -- -c config.toml help
+cd libsnout
+cargo build --release
 ```
+
+The snout-cli executable will be located under `target/release/`
+
+Help on how to use the cli tool can be obtained with:
+
+```sh
+snout-cli help
+``` 
+
+
+
+## Configuring 
+
+Beware: snout-cli *always* requires a config file to be passed to it via the `--config` argument. It does not use internal defaults.
+
+An example config.toml can be found below.
+
+```toml
+
+#libonnxruntime = "/usr/lib64/libonnxruntime.so"
+
+[eye]
+#link = true
+model = "eyeModel.onnx" # If not specified, tracking will be disabled.
+
+[eye.left]
+camera = "Bigeye: Bigeye (800x400 @ 90fps)" # If not specified, tracking will be disabled.
+
+#[eye.left.crop]
+#scale = 1.0
+#major_shift = 0.0
+#minor_shift = 0.0
+
+#[eye.left.transform]
+#rotation = 0.0
+#brightness = 0.66
+#vertical_flip = false
+#horizontal_flip = false
+
+[eye.right]
+camera = "Bigeye: Bigeye (800x400 @ 90fps)" # If not specified, tracking will be disabled.
+
+#[eye.right.crop]
+#scale = 1.0
+#major_shift = 0.0
+#minor_shift = 0.0
+
+#[eye.right.transform]
+#rotation = 0.0
+#brightness = 0.66
+#vertical_flip = false
+#horizontal_flip = false
+
+[face]
+# You can use a URL like "http://127.0.0.1:8080/mjpeg/stream.jpg" here as well.
+camera = "USB 2.0 Camera: USB Camera (640x480 @ 30fps)" # If not specified, tracking will be disabled.
+model = "faceModel.onnx" # If not specified, tracking will be disabled.
+
+#[face.crop]
+#scale = 1.0
+#major_shift = 0.0
+#minor_shift = 0.0
+
+#[face.transform]
+#rotation = 0.0
+#brightness = 0.66
+#vertical_flip = false
+#horizontal_flip = false
+
+[train]
+baseline = "eyeModel.safetensors"
+
+#[output.osc]
+#destination = "127.0.0.1:9400" # Set this to 127.0.0.1:8888 if you use VRCFT.Avalonia.
+
+``` 
+
+Make sure to edit it to suit your needs. 
+
+### Disabling specific tracking points
+
+Tracking can be disabled for specific points by setting their `camera` value to an empty string. Like so:
+
+```toml 
+[eye.right]
+camera = ""
+
+"......"
+
+[eye.left]
+camera = ""
+
+"......"
+
+[face]
+camera = "http://192.168.178.162"
+``` 
+
+The above example will disable both of the eye cameras, leaving only the face camera active.
+
+### Finding your camera
+
+The names of connected usb cameras can be found like so: 
+
+```sh
+snout-cli --config <config.toml> list-cameras
+``` 
+
+Once you have located your desired camera in the outputted list, use the full name of the camera in the configuration file.
+
+```toml
+[eye.right]
+camera = "Bigeye: Bigeye (800x400 @ 90fps)"
+``` 
+
+### Using with VRCFT or oscavmgr
+
+The osc endpoint that tracking data gets sent to will need to be adjusted to be used with VRCFT.
+The following configuration will work with VRCFT.avalonia:
+
+```toml
+[output.osc] 
+destination = "127.0.0.1:8888"
+``` 
+
+for oscavmgr the configuration will need to be as follows:
+
+```toml
+[output.osc] 
+destination = "127.0.0.1:9400"
+``` 
+### Note on onnx models
+
+The paths to the face and eye tracking onnx models are relative to your current directory. An absolute path may be preferred and can be set by prefixing the path with a `/` like so:
+
+```toml
+[face]
+
+"......."
+
+model = "/home/user/libsnout/faceModel.onnx" 
+``` 
+
+
+## Tracking
+
+Libsnout comes with a working face tracking model. It's the same as in the baballonia repository, but ran through `onnxsim`.
+
+Once you have set up your config.toml to point to your cameras, and set the output OSC destination to the correct values for your program of choice. You can start tracking with the following command:
+
+```sh
+snout-cli --config <config.toml> track
+``` 
+
+This will start recording, along with sending data to the OSC endpoint specified in the configuration file.
+
+
+## Training an eye model
+Eye models can be trained with the following command:
+
+```sh
+snout-cli --config <config.toml> train <user_cal.bin> <output.onnx>
+``` 
+
+
+## Troubleshooting
+
+A camera frame can be captured and written to a file with the following command to help with debugging tracking issues:  
+```sh
+snout-cli --config <config.toml> capture <SOURCE> <OUTPUT.jpeg>
+``` 
+
+`<SOURCE>` can be any of the following camera sources `left-eye`, `right-eye`, `face`,
+
+`<OUTPUT.jpeg>` will be the name of the file that the camera frame gets written to.
+
 
 ## Notes on cropping
 
 cropping the image works slightly differently; instead of providing top/left/right/bottom coordinates it uses major/minor shift and scale.
-Scale 1 is 100%, increase it to zoom in (1.5 would be 150%). Major and minor shift go from -1 to 1.
+Scale 1 is 100%, increase it to zoom in (1.5 would be 150%). 
+Major shift and minor shift range from -1 to 1.
 
-Major shifts along the longest axis, minor along the shortest axis. Minor shift only does something when zoomed in, if your input is a square then both will only function when zoomed in. It will always crop square; so on a 16:9 image the sides are trimmed off along the longest axis, for example. 
-Major shift will then allow you to shift the crop left and right.
+Major shift shifts along the longest axis, minor shift shifts along the shortest axis. Minor shift only does something when zoomed in, if your input is a square then both will only function when zoomed in.
 
-I designed it this way to prevent users for squishing their face, since the model always wants a 240x240 pixel input and the image pipeline just squishes the cropped image to fit that, squishing your face if you don't have a perfectly square crop.
+The camera stream will always be cropped into a square; so on a 16:9 image the sides are trimmed off along the longest axis, and Major shift will then allow you to shift the crop left or right. If you then zoom in on the cropped image, minor shift will allow you to shift the crop up or down.
+
+I designed it this way to prevent users from squishing their face, since the model always wants a 240x240 pixel input and the image pipeline just squishes the cropped image to fit that, squishing your face if you don't have a perfectly square crop.
+
 
 ### Generating `snout.h`
 
+generating snout.h requires `cbindgen`
+This can either be installed from your package manager. Or from cargo:
 ```sh
 cargo install --force cbindgen
+export PATH=$PATH:$HOME/.cargo/bin
+``` 
 
-export PATH=$PATH:/home/proto/.cargo/bin
+Once cbindgen is installed and located on your PATH, `snout.h` can be generated via:
+```sh
 cbindgen --config cbindgen.toml --output include/snout.h
 ```
+
+The generated `snout.h` file will then be located under `include/snout.h`
 
 ## License
 
