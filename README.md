@@ -219,22 +219,6 @@ The camera stream will always be cropped into a square; so on a 16:9 image the s
 I designed it this way to prevent users from squishing their face, since the model always wants a 240x240 pixel input and the image pipeline just squishes the cropped image to fit that, squishing your face if you don't have a perfectly square crop.
 
 
-### Generating `snout.h`
-
-generating snout.h requires `cbindgen`
-This can either be installed from your package manager. Or from cargo:
-```sh
-cargo install --force cbindgen
-export PATH=$PATH:$HOME/.cargo/bin
-``` 
-
-Once cbindgen is installed and located on your PATH, `snout.h` can be generated via:
-```sh
-cbindgen --config cbindgen.toml --output include/snout.h
-```
-
-The generated `snout.h` file will then be located under `include/snout.h`
-
 ## License
 
 Right now it's licensed under the same license as Baballonia from Project Babble is, considering this is a derivative work.
