@@ -193,6 +193,8 @@ Eye models can be trained with the following command:
 snout-cli --config <config.toml> train <user_cal.bin> <output.onnx>
 ``` 
 
+The resulting `<output.onnx>` can then be used in the .config toml, for the corresponding eye.
+
 
 ## Troubleshooting
 
