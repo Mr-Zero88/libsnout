@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::capture::processing::{Crop, PreprocessConfig};
+use crate::{calibration::FaceShape, capture::processing::{Crop, PreprocessConfig}};
 
 #[derive(Debug, Error)]
 pub enum ConfigError {
@@ -18,6 +18,13 @@ pub fn load(path: impl AsRef<Path>) -> Result<Config, ConfigError> {
     let config = toml::from_str(&str).map_err(|e| ConfigError::InvalidConfig(e.to_string()))?;
 
     Ok(config)
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct FaceShapeCalibration {
+    pub shape: FaceShape,
+    pub lower: f32,
+    pub upper: f32,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -56,6 +63,9 @@ pub struct FaceConfig {
     #[serde(default)]
     pub crop: Crop,
     pub transform: Option<PreprocessConfig>,
+
+    #[serde(default)]
+    pub calibration: Vec<FaceShapeCalibration>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

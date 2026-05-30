@@ -52,6 +52,11 @@ impl FaceTracker {
             tracker.preprocessor.set_config(*transform);
         }
 
+        for calibration in &config.face.calibration {
+            tracker.calibrator.set_upper(calibration.shape, calibration.upper);
+            tracker.calibrator.set_lower(calibration.shape, calibration.lower);
+        }
+
         Ok(tracker)
     }
 

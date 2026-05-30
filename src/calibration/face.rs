@@ -1,6 +1,8 @@
+use serde::{Deserialize, Serialize};
+
 use crate::calibration::{Bounds, Shape, Weights};
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[repr(u8)]
 pub enum FaceShape {
     CheekPuffLeft,
@@ -153,6 +155,14 @@ impl ManualFaceCalibrator {
 
     pub fn set_bounds(&mut self, shape: FaceShape, bounds: Bounds) {
         self.bounds[shape as usize] = bounds;
+    }
+
+    pub fn set_upper(&mut self, shape: FaceShape, upper: f32) {
+        self.bounds[shape as usize].upper = upper;
+    }
+
+    pub fn set_lower(&mut self, shape: FaceShape, lower: f32) {
+        self.bounds[shape as usize].lower = lower;
     }
 
     pub fn calibrate(&mut self, weights: &[f32]) -> Weights<'_, FaceShape> {
