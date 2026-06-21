@@ -13,9 +13,61 @@ pub enum ConfigError {
     InvalidConfig(String),
 }
 
+fn resolve_path(base: &Path, path: PathBuf) -> PathBuf {
+    if path.is_relative() {
+        base.join(path)
+    } else {
+        path
+    }
+}
+
+/// Finds a config file in pre-set locations.
+///
+/// Checks the following locations:
+/// - `$XDG_CONFIG_HOME/snout/config.toml`
+/// - `$HOME/.config/snout/config.toml`
+/// - `$HOME/.snout/config.toml`
+/// - `/etc/snout/config.toml`
+pub fn find_default_config() -> Option<PathBuf> {
+    if let Ok(xdg) = std::env::var("XDG_CONFIG_HOME") {
+        let path = PathBuf::from(xdg).join("snout/config.toml");
+        if path.exists() {
+            return Some(path);
+        }
+    }
+
+    if let Ok(home) = std::env::var("HOME") {
+        let path = PathBuf::from(&home).join(".config/snout/config.toml");
+        if path.exists() {
+            return Some(path);
+        }
+
+        let path = PathBuf::from(&home).join(".snout/config.toml");
+        if path.exists() {
+            return Some(path);
+        }
+    }
+
+    let path = PathBuf::from("/etc/snout/config.toml");
+    if path.exists() {
+        return Some(path);
+    }
+
+    None
+}
+
 pub fn load(path: impl AsRef<Path>) -> Result<Config, ConfigError> {
+    let path = path.as_ref();
+    let base = path.parent().unwrap_or(Path::new("."));
+
     let str = std::fs::read_to_string(path).map_err(|_| ConfigError::FileNotFound)?;
-    let config = toml::from_str(&str).map_err(|e| ConfigError::InvalidConfig(e.to_string()))?;
+    let mut config: Config =
+        toml::from_str(&str).map_err(|e| ConfigError::InvalidConfig(e.to_string()))?;
+
+    config.libonnxruntime = config.libonnxruntime.map(|p| resolve_path(base, p));
+    config.eye.model = config.eye.model.map(|p| resolve_path(base, p));
+    config.face.model = config.face.model.map(|p| resolve_path(base, p));
+    config.train.baseline = resolve_path(base, config.train.baseline);
 
     Ok(config)
 }
