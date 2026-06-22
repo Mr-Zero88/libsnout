@@ -294,5 +294,5 @@ baseline = "eyeModel.safetensors"
 # See https://docs.vrchat.com/docs/osc-eye-tracking for more information.
 #[output.vrchat]
 #destination = "127.0.0.1:9000"
-#max_pitch = 30.0
-#max_yaw = 20.0
+#max_pitch = 20.0 # Optional
+#max_yaw = 30.0 # Optional
