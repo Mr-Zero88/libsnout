@@ -113,7 +113,7 @@ impl VrchatEmitter {
         let left_pitch = weights[EyeShape::LeftEyePitch].clamp(-1., 1.) * self.max_pitch_deg;
         let right_pitch = weights[EyeShape::RightEyePitch].clamp(-1., 1.) * self.max_pitch_deg;
 
-        let eyes_closed = ((weights[EyeShape::LeftEyeLid] + weights[EyeShape::RightEyeLid]) / 2.).clamp(0., 1.);
+        let eyes_closed = 1. - ((weights[EyeShape::LeftEyeLid] + weights[EyeShape::RightEyeLid]) / 2.).clamp(0., 1.);
 
         let eyes_closed_msg = OscMessage {
             addr: "/tracking/eye/EyesClosedAmount".to_string(),
