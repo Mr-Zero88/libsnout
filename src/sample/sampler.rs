@@ -99,6 +99,10 @@ impl LongSampler {
         // Write all frames
         collector.write(output)?;
 
+        // Switch to *any* other routine to trigger sound
+        overlay.begin(Routine::Trainer)?;
+        std::thread::sleep(Duration::from_secs(1));
+
         overlay.close()?;
 
         Ok(())

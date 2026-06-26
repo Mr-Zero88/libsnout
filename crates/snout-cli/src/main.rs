@@ -36,7 +36,7 @@ fn main() {
             source,
             destination,
         } => TrainCommand::new(source, destination, config.train.baseline).run(),
-        Commands::Track {} => TrackCommand::new(config).run(),
+        Commands::Track { eye_debug } => TrackCommand::new(config, eye_debug).run(),
         Commands::Capture {
             source,
             destination,
@@ -87,7 +87,10 @@ enum Commands {
         destination: PathBuf,
     },
     /// Start tracking!
-    Track {},
+    Track {
+        #[arg(long)]
+        eye_debug: bool,
+    },
     /// Run calibration sampling.
     Sample {
         /// Output path for the calibration data.

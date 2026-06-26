@@ -1,18 +1,17 @@
 use std::{thread::sleep, time::Duration};
 
 use snout::{
-    capture::discovery::query_cameras,
-    config::Config,
-    track::{eye::EyeTracker, face::FaceTracker, initialize_runtime, output::Output},
+    calibration::EyeShape, capture::discovery::query_cameras, config::Config, track::{eye::EyeTracker, face::FaceTracker, initialize_runtime, output::Output},
 };
 
 pub struct TrackCommand {
     config: Config,
+    eye_debug: bool,
 }
 
 impl TrackCommand {
-    pub fn new(config: Config) -> Self {
-        Self { config }
+    pub fn new(config: Config, eye_debug: bool) -> Self {
+        Self { config, eye_debug }
     }
 
     pub fn run(&self) {
@@ -36,6 +35,17 @@ impl TrackCommand {
             }
 
             if let Some(eye_report) = eye_report {
+                if self.eye_debug {
+                    print!("\rL({:+.2},{:+.2}) R({:+.2},{:+.2}) lids:{:2.0}/{:2.0}            ",
+                        eye_report.weights.get(EyeShape::LeftEyePitch).unwrap_or(0.),
+                        eye_report.weights.get(EyeShape::LeftEyeYaw).unwrap_or(0.),
+                        eye_report.weights.get(EyeShape::RightEyePitch).unwrap_or(0.),
+                        eye_report.weights.get(EyeShape::RightEyeYaw).unwrap_or(0.),
+                        eye_report.weights.get(EyeShape::LeftEyeLid).unwrap_or(0.) * 100.,
+                        eye_report.weights.get(EyeShape::RightEyeLid).unwrap_or(0.) * 100.
+                    );
+                }
+
                 output.send_eyes(eye_report.weights);
             }
 

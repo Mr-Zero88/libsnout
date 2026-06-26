@@ -15,6 +15,7 @@ pub enum Routine {
     BlinkTutorial, // 10s
     ShortBlinkTutorial, // 4s
     Blink(Duration),
+    Trainer,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -71,6 +72,7 @@ impl Overlay {
             Routine::BlinkTutorial => ("blinktutorial", Duration::from_secs(10)),
             Routine::ShortBlinkTutorial => ("blinktutorial", Duration::from_secs(4)),
             Routine::Blink(d) => ("blink", d),
+            Routine::Trainer => ("trainer", Duration::from_secs(120)),
         };
 
         let packet = Packet::new(
