@@ -13,6 +13,15 @@ use crate::{
     weights::Weights,
 };
 
+const LEGACY_OUTPUT_MAP: [Option<EyeShape>; 6] = [
+    Some(EyeShape::LeftEyePitch),
+    Some(EyeShape::LeftEyeYaw),
+    Some(EyeShape::LeftEyeLid),
+    Some(EyeShape::RightEyePitch),
+    Some(EyeShape::RightEyeYaw),
+    Some(EyeShape::RightEyeLid),
+];
+
 pub struct EyePipeline {
     transfer: FrameToBurnTensor,
     inference: Option<EyeInference>,
@@ -30,22 +39,35 @@ impl EyePipeline {
             collector: EyeCompositor::new(),
             filter: OneEuroFilter::new(EyeShape::count()),
             weights: Weights::new(),
-            output_map: vec![
-                Some(EyeShape::LeftEyePitch),
-                Some(EyeShape::LeftEyeYaw),
-                Some(EyeShape::LeftEyeLid),
-                Some(EyeShape::RightEyePitch),
-                Some(EyeShape::RightEyeYaw),
-                Some(EyeShape::RightEyeLid),
-            ],
+            output_map: LEGACY_OUTPUT_MAP.to_vec(),
         }
     }
 
     pub fn set_model(&mut self, path: Option<impl AsRef<Path>>) -> Result<(), PipelineError> {
         if let Some(path) = path {
-            self.inference = Some(EyeInference::new(path)?);
+            let inference = EyeInference::new(path)?;
+
+            let output_map = match &inference.output_names {
+                Some(names) => names.iter().map(|n| EyeShape::from_model_name(n)).collect(),
+                None => {
+                    if inference.output_count() != LEGACY_OUTPUT_MAP.len() {
+                        tracing::warn!(
+                            output_count = inference.output_count(),
+                            "using legacy output map on incompatible model",
+                        );
+                    }
+                    tracing::info!("using legacy output map");
+                    LEGACY_OUTPUT_MAP.to_vec()
+                }
+            };
+
+            self.filter = OneEuroFilter::new(inference.output_count());
+            self.output_map = output_map;
+            self.inference = Some(inference);
         } else {
             self.inference = None;
+            self.output_map = LEGACY_OUTPUT_MAP.to_vec();
+            self.filter = OneEuroFilter::new(EyeShape::count());
         }
 
         Ok(())

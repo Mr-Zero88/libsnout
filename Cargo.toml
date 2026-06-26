@@ -21,6 +21,7 @@ onnx-rs = "0.1.2"
 safetensors = "0.7.0"
 ort = { version = "2.0.0-rc.12", default-features = false, features = ["api-20", "cuda", "load-dynamic", "ndarray", "tracing"] }
 serde = "1.0.228"
+serde_json = "1.0"
 toml = "1.1.2"
 ndarray = "0.17.2"
 ureq = { version = "3.3.0", default-features = false }

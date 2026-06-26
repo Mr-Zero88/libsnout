@@ -6265,6 +6265,7 @@ dependencies = [
  "safetensors 0.7.0",
  "sampleio",
  "serde",
+ "serde_json",
  "thiserror 2.0.18",
  "toml",
  "tracing",

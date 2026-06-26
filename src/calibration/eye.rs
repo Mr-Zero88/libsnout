@@ -45,6 +45,26 @@ impl EyeShape {
         Self::RightEyeLid as usize + 1
     }
 
+    pub fn from_model_name(name: &str) -> Option<Self> {
+        match name {
+            "rightEyeY" => Some(Self::RightEyePitch),
+            "rightEyeX" => Some(Self::RightEyeYaw),
+            "rightEyeLid" => Some(Self::RightEyeLid),
+            "leftEyeY" => Some(Self::LeftEyePitch),
+            "leftEyeX" => Some(Self::LeftEyeYaw),
+            "leftEyeLid" => Some(Self::LeftEyeLid),
+            // leftEyeWiden
+            // rightEyeWiden
+            // leftEyeSquint
+            // rightEyeSquint
+            // LeftEyeBrow
+            // RightEyeBrow
+            // LeftEyeLower
+            // RightEyeLower
+            _ => None,
+        }
+    }
+
     pub(crate) fn to_etvr(self) -> &'static str {
         match self {
             Self::LeftEyePitch => "/avatar/parameters/v2/EyeLeftX",
