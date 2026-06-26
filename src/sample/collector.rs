@@ -66,7 +66,7 @@ impl FrameCollector {
 
     pub fn add(&mut self, phase: Phase, left: &Frame, right: &Frame) {
         if phase.needs_position() {
-            let Some((pos, stamp)) = self.position.clone() else {
+            let Some((pos, stamp)) = self.position else {
                 return;
             };
             if stamp.elapsed() > POSITION_FRESHNESS {
