@@ -6,7 +6,7 @@ use std::io;
 use std::path::Path;
 
 use image::{GrayImage, ImageFormat, load_from_memory_with_format};
-use sampleio::{CaptureReader, ReadError};
+use crate::sample::file::{CaptureReader, ReadError};
 
 use capture_frame::CaptureFrame;
 use corruption::CorruptionDetector;

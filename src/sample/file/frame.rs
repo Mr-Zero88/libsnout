@@ -1,4 +1,4 @@
-use crate::flags::RoutineState;
+use super::flags::RoutineState;
 
 pub const FRAME_META_SIZE: usize = 100;
 pub const MAX_JPEG_SIZE: usize = 10 * 1024 * 1024;

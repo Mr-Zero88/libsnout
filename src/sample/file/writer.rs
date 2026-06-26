@@ -4,7 +4,7 @@ use std::path::Path;
 
 use byteorder::{LittleEndian, WriteBytesExt};
 
-use crate::frame::{FrameMeta, RawFrame};
+use super::frame::{FrameMeta, RawFrame};
 
 pub struct CaptureWriter<W: Write> {
     inner: W,

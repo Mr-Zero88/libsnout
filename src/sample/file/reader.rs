@@ -4,9 +4,9 @@ use std::path::Path;
 
 use byteorder::{LittleEndian, ReadBytesExt};
 
-use crate::error::ReadError;
-use crate::flags::RoutineState;
-use crate::frame::{FRAME_META_SIZE, FrameMeta, MAX_JPEG_SIZE, RawFrame};
+use super::error::ReadError;
+use super::flags::RoutineState;
+use super::frame::{FRAME_META_SIZE, FrameMeta, MAX_JPEG_SIZE, RawFrame};
 
 pub struct CaptureReader<R: Read> {
     inner: R,
