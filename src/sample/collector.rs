@@ -9,6 +9,7 @@ use crate::sample::net::Position;
 const JPEG_QUALITY: u8 = 85;
 const POSITION_FRESHNESS: Duration = Duration::from_millis(200);
 
+#[derive(Clone, Copy)]
 pub enum Phase {
     Gaze,
     Blink,
@@ -47,15 +48,13 @@ impl Phase {
 }
 
 pub struct FrameCollector {
-    phase: Phase,
     position: Option<(Position, Instant)>,
     frames: Vec<RawFrame>,
 }
 
 impl FrameCollector {
-    pub fn new(phase: Phase) -> Self {
+    pub fn new() -> Self {
         Self {
-            phase,
             position: None,
             frames: Vec::new(),
         }
@@ -65,17 +64,17 @@ impl FrameCollector {
         self.position = Some((pos, Instant::now()));
     }
 
-    pub fn add(&mut self, left: &Frame, right: &Frame) {
-        if self.phase.needs_position() {
+    pub fn add(&mut self, phase: Phase, left: &Frame, right: &Frame) {
+        if phase.needs_position() {
             let Some((pos, stamp)) = self.position.clone() else {
                 return;
             };
             if stamp.elapsed() > POSITION_FRESHNESS {
                 return;
             }
-            self.add_with_position(left, right, &pos);
+            self.add_with_position(phase, left, right, &pos);
         } else {
-            self.add_without_position(left, right);
+            self.add_without_position(phase, left, right);
         }
     }
 
@@ -91,7 +90,7 @@ impl FrameCollector {
         self.frames.len()
     }
 
-    fn add_with_position(&mut self, left: &Frame, right: &Frame, pos: &Position) {
+    fn add_with_position(&mut self, phase: Phase, left: &Frame, right: &Frame, pos: &Position) {
         let time = timestamp_ms();
         let meta = FrameMeta {
             routine_pitch: pos.routine_pitch,
@@ -103,8 +102,8 @@ impl FrameCollector {
             left_eye_yaw: -pos.left_eye_yaw,
             right_eye_pitch: pos.right_eye_pitch,
             right_eye_yaw: -pos.right_eye_yaw,
-            routine_left_lid: self.phase.lid(),
-            routine_right_lid: self.phase.lid(),
+            routine_left_lid: phase.lid(),
+            routine_right_lid: phase.lid(),
             routine_brow_raise: 0.0,
             routine_brow_angry: 0.0,
             routine_widen: 0.0,
@@ -113,14 +112,14 @@ impl FrameCollector {
             timestamp: time,
             video_timestamp_left: time,
             video_timestamp_right: time,
-            routine_state: RoutineState::from_raw(self.phase.flags()),
+            routine_state: RoutineState::from_raw(phase.flags()),
             jpeg_left_len: 0,
             jpeg_right_len: 0,
         };
         self.push_frame(meta, left, right);
     }
 
-    fn add_without_position(&mut self, left: &Frame, right: &Frame) {
+    fn add_without_position(&mut self, phase: Phase, left: &Frame, right: &Frame) {
         let time = timestamp_ms();
         let meta = FrameMeta {
             routine_pitch: 0.0,
@@ -132,8 +131,8 @@ impl FrameCollector {
             left_eye_yaw: 0.0,
             right_eye_pitch: 0.0,
             right_eye_yaw: 0.0,
-            routine_left_lid: self.phase.lid(),
-            routine_right_lid: self.phase.lid(),
+            routine_left_lid: phase.lid(),
+            routine_right_lid: phase.lid(),
             routine_brow_raise: 0.0,
             routine_brow_angry: 0.0,
             routine_widen: 0.0,
@@ -142,7 +141,7 @@ impl FrameCollector {
             timestamp: time,
             video_timestamp_left: time,
             video_timestamp_right: time,
-            routine_state: RoutineState::from_raw(self.phase.flags()),
+            routine_state: RoutineState::from_raw(phase.flags()),
             jpeg_left_len: 0,
             jpeg_right_len: 0,
         };

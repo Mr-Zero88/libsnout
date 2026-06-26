@@ -6,6 +6,7 @@ use snout::{
     cancel::Cancel,
     capture::discovery::query_cameras,
     config::Config,
+    sample::sampler::LongSampler,
     track::{eye::EyeTracker, face::FaceTracker, initialize_runtime},
     train::Progress,
 };
@@ -142,5 +143,27 @@ impl CaptureCommand {
                 }
             }
         }
+    }
+}
+
+pub struct SampleCommand {
+    config: Config,
+    output: PathBuf,
+}
+
+impl SampleCommand {
+    pub fn new(config: Config, output: PathBuf) -> Self {
+        Self { config, output }
+    }
+
+    pub fn run(&self) {
+        let cameras = query_cameras();
+
+        let mut sampler = LongSampler::with_config(&cameras, &self.config)
+            .expect("failed to create sampler");
+
+        println!("Starting calibration...");
+        sampler.run(&self.output).expect("sampling failed");
+        println!("Done. Written to {}", self.output.display());
     }
 }

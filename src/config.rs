@@ -88,6 +88,9 @@ pub struct Config {
     pub train: TrainConfig,
 
     #[serde(default)]
+    pub sample: Option<SampleConfig>,
+
+    #[serde(default)]
     pub output: OutputConfig,
 }
 
@@ -125,6 +128,25 @@ pub struct FaceConfig {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct TrainConfig {
     pub baseline: PathBuf,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct SampleConfig {
+    pub overlay: OverlayConfig,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct OverlayConfig {
+    pub path: PathBuf,
+    pub mode: OverlayMode,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "PascalCase")]
+pub enum OverlayMode {
+    OpenVr,
+    OpenXr,
+    Debug,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]

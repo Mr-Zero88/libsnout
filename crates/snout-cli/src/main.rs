@@ -6,7 +6,7 @@ use std::process;
 use clap::{Parser, Subcommand, ValueEnum};
 use tracing_subscriber::EnvFilter;
 
-use crate::commands::{CaptureCommand, ListCamerasCommand, TrackCommand, TrainCommand};
+use crate::commands::{CaptureCommand, ListCamerasCommand, SampleCommand, TrackCommand, TrainCommand};
 
 fn main() {
     let cli = Args::parse();
@@ -41,6 +41,7 @@ fn main() {
             source,
             destination,
         } => CaptureCommand::new(config, source, destination).run(),
+        Commands::Sample { output } => SampleCommand::new(config, output).run(),
     }
 }
 
@@ -87,4 +88,10 @@ enum Commands {
     },
     /// Start tracking!
     Track {},
+    /// Run calibration sampling.
+    Sample {
+        /// Output path for the calibration data.
+        #[arg(short, long, default_value = "user_cal.bin")]
+        output: PathBuf,
+    },
 }

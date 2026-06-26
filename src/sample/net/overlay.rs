@@ -35,6 +35,7 @@ pub enum Event {
     Position(Position),
 }
 
+#[derive(Clone, Copy)]
 pub enum Mode {
     OpenVr,
     OpenXr,
