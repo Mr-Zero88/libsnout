@@ -29,3 +29,8 @@ crate-type = ["rlib", "cdylib", "staticlib"]
 
 [profile.release]
 lto = "thin"
+
+[lints.clippy]
+new_without_default = "allow"
+match_like_matches_macro = "allow"
+len_without_is_empty = "allow"

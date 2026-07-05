@@ -67,9 +67,7 @@ impl CameraInfo {
                     self.name, format.width, format.height, format.fps
                 )
             }
-            CameraSource::Http(http) => {
-                format!("{}", http.url)
-            }
+            CameraSource::Http(http) => http.url.to_string(),
         }
     }
 }

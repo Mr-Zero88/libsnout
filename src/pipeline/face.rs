@@ -61,7 +61,7 @@ impl FacePipeline {
             .transfer_frame(frame, &mut inference.input_tensor);
 
         let weights = inference.run()?;
-        let filtered_weights = self.filter.filter(&weights);
+        let filtered_weights = self.filter.filter(weights);
 
         self.weights.fill_with(filtered_weights, &self.output_map);
 

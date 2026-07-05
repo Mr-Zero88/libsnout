@@ -29,10 +29,6 @@ impl Frame {
         }
     }
 
-    pub unsafe fn new_unchecked(image: GrayImage) -> Self {
-        Self { image }
-    }
-
     pub fn width(&self) -> usize {
         self.image.width() as _
     }

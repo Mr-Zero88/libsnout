@@ -23,7 +23,7 @@ impl FrameToBurnTensor {
 
     pub fn transfer_frame(&mut self, source: &Frame, destination: &mut ort::value::Tensor<f32>) {
         self.transfer(
-            &source.image.as_ref(),
+            source.image.as_ref(),
             source.image.width(),
             source.image.height(),
             1,

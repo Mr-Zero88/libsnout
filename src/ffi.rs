@@ -1,3 +1,6 @@
+#![allow(clippy::not_unsafe_ptr_arg_deref)]
+#![allow(clippy::unnecessary_cast)]
+
 use std::ffi::CStr;
 use std::path::Path;
 use std::sync::Mutex;
@@ -124,7 +127,7 @@ struct LastError {
 }
 
 thread_local! {
-    static LAST_ERROR: RefCell<LastError> = RefCell::new(LastError { code: SnoutError::Ok, message: String::new() })
+    static LAST_ERROR: RefCell<LastError> = const { RefCell::new(LastError { code: SnoutError::Ok, message: String::new() }) };
 }
 
 fn set_null_pointer_error() {

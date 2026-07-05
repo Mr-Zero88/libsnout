@@ -36,7 +36,7 @@ impl OscTransport {
         let msg = OscPacket::Message(msg);
 
         if let Ok(buf) = encoder::encode(&msg) {
-            let _ = self.socket.send_to(&buf, &self.destination);
+            let _ = self.socket.send_to(&buf, self.destination);
         }
     }
 

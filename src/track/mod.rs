@@ -66,7 +66,7 @@ pub fn initialize_runtime(path: Option<impl AsRef<Path>>) {
         }
     }
 
-    if let Some(search_path) = std::env::var("LD_LIBRARY_PATH").ok() {
+    if let Ok(search_path) = std::env::var("LD_LIBRARY_PATH") {
         for dir in search_path.split(':') {
             let path = Path::new(dir).join("libonnxruntime.so");
             if path.exists() {

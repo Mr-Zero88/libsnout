@@ -176,7 +176,7 @@ impl V4lCamera {
                 }
             }
             PixelFormat::Mjpeg => {
-                let img = image::load_from_memory(&buf[..])
+                let img = image::load_from_memory(buf)
                     .map_err(|e| CameraError::InvalidFrame(e.to_string()))?
                     .into_luma8();
                 destination.copy_from_slice(img.as_raw());
