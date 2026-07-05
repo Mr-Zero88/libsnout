@@ -27,6 +27,17 @@ enum Command {
     },
     /// Begin a neutral-hold face calibration pass.
     FaceCalibrate,
+    /// Capture the peak of a face shape over a window and set its upper bound.
+    ///
+    /// Hold (or sweep to) the maximum of the expression for the duration of the
+    /// capture; the highest value seen becomes the shape's upper bound.
+    FaceCalibrateUpper {
+        /// Face shape name, e.g. `jawLeft`, `tongueOut`.
+        shape: String,
+        /// Number of frames to capture the peak over.
+        #[arg(short, long, default_value_t = 100)]
+        frames: u32,
+    },
 }
 
 impl Command {
@@ -47,6 +58,10 @@ impl Command {
             Command::FaceCalibrate => OscMessage {
                 addr: "/snout/face/calibrate".to_string(),
                 args: vec![],
+            },
+            Command::FaceCalibrateUpper { shape, frames } => OscMessage {
+                addr: "/snout/face/calibrate/upper".to_string(),
+                args: vec![OscType::String(shape), OscType::Int(frames as i32)],
             },
         }
     }

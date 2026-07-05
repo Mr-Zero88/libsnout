@@ -24,6 +24,7 @@ const IDLE_RETRY: Duration = Duration::from_millis(10);
 enum FaceEvent {
     Bounds(FaceShape, f32, f32),
     Calibrate,
+    CalibrateUpper(FaceShape, u32),
 }
 
 pub struct TrackCommand {
@@ -78,6 +79,11 @@ impl TrackCommand {
                     }
                     FaceEvent::Calibrate => {
                         tracker.calibrator.start_calibration();
+                    }
+                    FaceEvent::CalibrateUpper(shape, frames) => {
+                        tracker
+                            .calibrator
+                            .start_upper_calibration(shape, frames as usize);
                     }
                 }
             }
@@ -197,6 +203,9 @@ fn run_control(listen: String, face: Sender<FaceEvent>) {
         let face_event = match event {
             ControlEvent::FaceBounds(shape, lower, upper) => FaceEvent::Bounds(shape, lower, upper),
             ControlEvent::FaceCalibrate => FaceEvent::Calibrate,
+            ControlEvent::FaceCalibrateUpper(shape, frames) => {
+                FaceEvent::CalibrateUpper(shape, frames)
+            }
         };
 
         if face.send(face_event).is_err() {

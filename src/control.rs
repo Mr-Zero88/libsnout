@@ -16,6 +16,9 @@ pub enum ControlEvent {
     FaceBounds(FaceShape, f32, f32),
     /// Begin a neutral-hold face calibration pass.
     FaceCalibrate,
+    /// Begin an upper-bound calibration pass for a single shape, capturing the
+    /// peak over the given number of frames.
+    FaceCalibrateUpper(FaceShape, u32),
 }
 
 /// Receives control commands over OSC/UDP.
@@ -77,6 +80,17 @@ fn decode_message(message: &OscMessage) -> Option<ControlEvent> {
             Some(ControlEvent::FaceBounds(shape, *lower, *upper))
         }
         "/snout/face/calibrate" => Some(ControlEvent::FaceCalibrate),
+        "/snout/face/calibrate/upper" => {
+            let [OscType::String(shape), OscType::Int(frames)] = message.args.as_slice() else {
+                return None;
+            };
+
+            let shape = FaceShape::from_str(shape).ok()?;
+            Some(ControlEvent::FaceCalibrateUpper(
+                shape,
+                (*frames).max(1) as u32,
+            ))
+        }
         _ => None,
     }
 }

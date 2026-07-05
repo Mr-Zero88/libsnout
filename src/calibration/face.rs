@@ -207,112 +207,184 @@ impl Shape for FaceShape {
 }
 
 pub struct ManualFaceCalibrator {
-    bounds: Vec<Bounds>,
+    bounds: FaceBounds,
     weights: Weights<FaceShape>,
-    calibration: Option<Calibration>,
+    neutral_hold: NeutralHold,
+    peak_capture: PeakCapture,
 }
 
-/// Number of frames collected during a calibration pass.
+struct FaceBounds {
+    bounds: Vec<Bounds>,
+}
+
+impl FaceBounds {
+    fn new() -> Self {
+        Self {
+            bounds: vec![Bounds::new_01(); FaceShape::count()],
+        }
+    }
+
+    fn get(&self, shape: FaceShape) -> Bounds {
+        self.bounds[shape as usize]
+    }
+
+    fn set(&mut self, shape: FaceShape, bounds: Bounds) {
+        tracing::debug!(shape = ?shape, ?bounds, "set_bounds");
+        self.bounds[shape as usize] = bounds;
+    }
+
+    fn set_lower(&mut self, shape: FaceShape, lower: f32) {
+        tracing::debug!(shape = ?shape, lower, "set_lower");
+        self.bounds[shape as usize].lower = lower;
+    }
+
+    fn set_upper(&mut self, shape: FaceShape, upper: f32) {
+        tracing::debug!(shape = ?shape, upper, "set_upper");
+        self.bounds[shape as usize].upper = upper;
+    }
+
+    fn remap_into(&self, raw: &Weights<FaceShape>, out: &mut Weights<FaceShape>) {
+        out.clear();
+
+        for (shape, value) in raw.iter() {
+            out.set(shape, self.bounds[shape as usize].remap(value));
+        }
+    }
+}
+
 /// At ~30 fps this is roughly three seconds of neutral hold.
 const CALIBRATION_SAMPLES: usize = 100;
 
-/// In-progress neutral-hold calibration
-struct Calibration {
-    /// Frames left to collect before finalizing.
+struct NeutralHold {
     remaining: usize,
-    /// Running sum of raw values, indexed by shape.
     sums: Vec<f32>,
-    /// Number of frames each shape was observed in, indexed by shape.
     counts: Vec<u32>,
 }
 
-impl Calibration {
+impl NeutralHold {
     fn new() -> Self {
         Self {
-            remaining: CALIBRATION_SAMPLES,
+            remaining: 0,
             sums: vec![0.0; FaceShape::count()],
             counts: vec![0; FaceShape::count()],
         }
+    }
+
+    fn start(&mut self, frames: usize) {
+        tracing::debug!(frames, "start_calibration");
+
+        self.remaining = frames;
+        self.sums.fill(0.0);
+        self.counts.fill(0);
+    }
+
+    fn feed(&mut self, raw: &Weights<FaceShape>, bounds: &mut FaceBounds) {
+        if self.remaining == 0 {
+            return;
+        }
+
+        for (shape, value) in raw.iter() {
+            let index = shape as usize;
+            self.sums[index] += value;
+            self.counts[index] += 1;
+        }
+
+        self.remaining -= 1;
+        if self.remaining != 0 {
+            return;
+        }
+
+        for shape in FaceShape::iter() {
+            let index = shape as usize;
+            if self.counts[index] > 0 {
+                let mean = self.sums[index] / self.counts[index] as f32;
+                bounds.set_lower(shape, mean);
+            }
+        }
+    }
+}
+
+struct PeakCapture {
+    shape: FaceShape,
+    remaining: usize,
+    max: f32,
+}
+
+impl PeakCapture {
+    fn new() -> Self {
+        Self {
+            shape: FaceShape::CheekPuffLeft,
+            remaining: 0,
+            max: f32::NEG_INFINITY,
+        }
+    }
+
+    fn start(&mut self, shape: FaceShape, frames: usize) {
+        tracing::debug!(?shape, frames, "start_upper_calibration");
+
+        self.shape = shape;
+        self.remaining = frames;
+        self.max = f32::NEG_INFINITY;
+    }
+
+    fn feed(&mut self, raw: &Weights<FaceShape>, bounds: &mut FaceBounds) {
+        if self.remaining == 0 {
+            return;
+        }
+
+        if let Some(value) = raw.get(self.shape) {
+            self.max = self.max.max(value);
+        }
+
+        self.remaining -= 1;
+        if self.remaining != 0 {
+            return;
+        }
+
+        bounds.set_upper(self.shape, self.max);
     }
 }
 
 impl ManualFaceCalibrator {
     pub fn new() -> Self {
         Self {
-            bounds: vec![Bounds::new_01(); FaceShape::count()],
+            bounds: FaceBounds::new(),
             weights: Weights::new(),
-            calibration: None,
+            neutral_hold: NeutralHold::new(),
+            peak_capture: PeakCapture::new(),
         }
     }
 
     pub fn bounds(&self, shape: FaceShape) -> Bounds {
-        self.bounds[shape as usize]
+        self.bounds.get(shape)
     }
 
     pub fn set_bounds(&mut self, shape: FaceShape, bounds: Bounds) {
-        tracing::debug!(shape = ?shape, ?bounds, "set_bounds");
-        self.bounds[shape as usize] = bounds;
+        self.bounds.set(shape, bounds);
     }
 
     pub fn set_upper(&mut self, shape: FaceShape, upper: f32) {
-        tracing::debug!(shape = ?shape, upper, "set_upper");
-        self.bounds[shape as usize].upper = upper;
+        self.bounds.set_upper(shape, upper);
     }
 
     pub fn set_lower(&mut self, shape: FaceShape, lower: f32) {
-        tracing::debug!(shape = ?shape, lower, "set_lower");
-        self.bounds[shape as usize].lower = lower;
+        self.bounds.set_lower(shape, lower);
     }
 
-    /// Begins a neutral-hold calibration pass.
-    ///
-    /// Over the next [`CALIBRATION_SAMPLES`] calls to [`Self::calibrate`],
-    /// raw shape values are averaged and the resulting per-shape means become the new lower bounds.
-    ///
-    /// Calling this while a pass is already running restarts it from scratch.
     pub fn start_calibration(&mut self) {
-        tracing::debug!(samples = CALIBRATION_SAMPLES, "start_calibration");
-        self.calibration = Some(Calibration::new());
+        self.neutral_hold.start(CALIBRATION_SAMPLES);
+    }
+
+    pub fn start_upper_calibration(&mut self, shape: FaceShape, frames: usize) {
+        self.peak_capture.start(shape, frames);
     }
 
     pub fn calibrate(&mut self, raw: &Weights<FaceShape>) -> &Weights<FaceShape> {
-        self.weights.clear();
+        self.bounds.remap_into(raw, &mut self.weights);
 
-        for (shape, value) in raw.iter() {
-            let bounds = &self.bounds[<FaceShape as Into<usize>>::into(shape)];
-            self.weights.set(shape, bounds.remap(value));
-        }
-
-        self.collect_calibration(raw);
+        self.neutral_hold.feed(raw, &mut self.bounds);
+        self.peak_capture.feed(raw, &mut self.bounds);
 
         &self.weights
-    }
-
-    fn collect_calibration(&mut self, raw: &Weights<FaceShape>) {
-        let finished = if let Some(calibration) = &mut self.calibration {
-            for (shape, value) in raw.iter() {
-                let index = shape as usize;
-                calibration.sums[index] += value;
-                calibration.counts[index] += 1;
-            }
-
-            calibration.remaining -= 1;
-            calibration.remaining == 0
-        } else {
-            false
-        };
-
-        if finished {
-            let calibration = self.calibration.take().unwrap();
-
-            for shape in FaceShape::iter() {
-                let index = shape as usize;
-                if calibration.counts[index] > 0 {
-                    let mean = calibration.sums[index] / calibration.counts[index] as f32;
-                    tracing::debug!(?shape, lower = mean, "calibrated lower bound");
-                    self.bounds[index].lower = mean;
-                }
-            }
-        }
     }
 }
